@@ -66,6 +66,11 @@ class RodgersBot < SlackRubyBot::Bot
           hostname: Hash[*ec2.tags.map{|tag|[tag.key,tag.value]}.flatten]["opsworks:instance"],
         }
       end
+
+      hosts.sort! do |v1, v2|
+        v1[:hostname] <=> v2[:hostname]
+      end
+
       client.say(
         text: hosts.map{|e|"#{e[:private_ip]}\t#{e[:hostname]}"}.join("\n"),
         channel: data.channel

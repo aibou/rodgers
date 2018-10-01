@@ -10,6 +10,8 @@ COPY Gemfile.lock /work/Gemfile.lock
 
 RUN bundle install -j 2
 
-COPY main.rb /work/main.rb
+COPY bin /work/bin
+COPY lib /work/lib
 
-ENTRYPOINT ["bundle", "exec", "ruby", "./main.rb"]
+ENTRYPOINT ["bundle", "exec", "bin/rodgers"]
+

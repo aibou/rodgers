@@ -3,4 +3,5 @@
 $: << File.expand_path("#{File.dirname __FILE__}/../lib")
 require 'rodgers'
 
+SlackRubyBot::Client.logger.level = Logger::INFO
 Rodgers.start

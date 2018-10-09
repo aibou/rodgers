@@ -39,13 +39,36 @@ module Rodgers
     def tag
       args = match["expression"].split(/\s+/)
       case args[0]
-      # 対話
+
       when /^arn:/
         arn, tag_name, tag_value, *_ = args
-        if [arn, tag_name, tag_value].any?(&:nil?)
-          client.say(
-          text: "Too short args. ",
-          channel: data.channel
+
+        # 両方共nilの場合はそのARNについているtag一覧を表示
+        # memo: 現状、resourcegroupstaggingapi に ARN指定するオプションがない
+        # そのため、[serviceのtag APIを使う] か [rgta:GetResourcesをフィルタするか] の2択
+        # 前者のほうが高速だが、clientとactionを変えるのが面倒、後者はpaginationのためワーストケースがかなり遅い
+        if [tag_name, tag_value].all?(&:nil?)
+          service, region, account_id, *resource_names = arn.split(/:/)[2..-1]
+          aws_client = Aws::ResourceGroupsTaggingAPI::Client.new(region: region, credentials: credentials)
+          page_token, tags = nil
+          
+          loop do
+            resources = aws_client.get_resources(resource_type_filters: [service], starting_token: page_token)
+            if resources.any? {|e| e.resource_arn == arn }
+              tags = resources.find {|e| e.resource_arn == arn }
+              break
+            end
+            break if resources.pagination_token.empty?
+          end
+
+          # 整形してview.say
+        end
+        
+        # いずれかがnilの場合（というかtag_valueがnilの場合）はエラー
+        if [tag_name, tag_value].any?(&:nil?)
+          view.say(
+            text: "Too short args.",
+            channel: data.channel
           )
         end
 

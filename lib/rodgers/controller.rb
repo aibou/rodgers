@@ -49,19 +49,23 @@ module Rodgers
         # 前者のほうが高速だが、clientとactionを変えるのが面倒、後者はpaginationのためワーストケースがかなり遅い
         if [tag_name, tag_value].all?(&:nil?)
           service, region, account_id, *resource_names = arn.split(/:/)[2..-1]
+          credentials = assume_role_credentials(account_id)
           aws_client = Aws::ResourceGroupsTaggingAPI::Client.new(region: region, credentials: credentials)
           page_token, tags = nil
           
           loop do
-            resources = aws_client.get_resources(resource_type_filters: [service], starting_token: page_token)
+            resources = aws_client.get_resources(resource_type_filters: [service], starting_token: page_token).resource_tag_mapping_list
+            require 'pp'
+            pp resources
             if resources.any? {|e| e.resource_arn == arn }
-              tags = resources.find {|e| e.resource_arn == arn }
+              tags = resources.find{|e| e.resource_arn == arn }.tags
               break
             end
             break if resources.pagination_token.empty?
           end
-
-          # 整形してview.say
+          
+          view.format_as_code_block(tags.map{|e| {key: e.key, value: e.value}} , length: 32, without_key: true)
+          return
         end
         
         # いずれかがnilの場合（というかtag_valueがnilの場合）はエラー

@@ -55,8 +55,6 @@ module Rodgers
           
           loop do
             resources = aws_client.get_resources(resource_type_filters: [service], starting_token: page_token).resource_tag_mapping_list
-            require 'pp'
-            pp resources
             if resources.any? {|e| e.resource_arn == arn }
               tags = resources.find{|e| e.resource_arn == arn }.tags
               break
